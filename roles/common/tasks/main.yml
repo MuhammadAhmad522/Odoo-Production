@@ -1,0 +1,30 @@
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  with_items:
+    - python3
+    - python3-pip
+    - curl
+    - ca-certificates
+    - git
+    - npm
+    - postgresql-common
+    - libpq-dev
+    - gnupg2
+    - lsb-release
+    - ubuntu-keyring
+
+- name: Install psycopg2 using python3-pip
+  ansible.builtin.pip:
+    name: psycopg2
+    executable: pip3
+    state: present
+
+- name: Install rtlcss globally using npm
+  community.general.npm:
+    name: rtlcss
+    global: true
+    state: present

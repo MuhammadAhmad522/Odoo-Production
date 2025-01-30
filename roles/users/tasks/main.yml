@@ -1,0 +1,96 @@
+---
+- name: Create ERP group
+  ansible.builtin.group:
+    name: "{{ erp_group }}"
+    state: present
+
+- name: Create SSH user
+  ansible.builtin.user:
+    name: "{{ ssh_user }}"
+    shell: /bin/bash
+    state: present
+    generate_ssh_key: true
+    ssh_key_type: "ed25519"
+    ssh_key_file: "/home/{{ ssh_user }}/.ssh/id_ed25519"
+    create_home: true
+
+- name: Add SSH user to ssh allowed users
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    line: "AllowUsers {{ ssh_user }} vagrant"
+    state: present
+  notify: Reload SSH service
+
+- name: Ensure SSH user can switch to erp_admin user and restart odoo services
+  become: true
+  ansible.builtin.copy:
+    content: |
+      {{ ssh_user }} ALL=(erp_admin) /bin/su - erp_admin
+      {{ ssh_user }} ALL=({{ system_user }}) NOPASSWD: /bin/systemctl restart odoo
+    dest: "/etc/sudoers.d/{{ ssh_user }}"
+    mode: '0440'
+    owner: root
+    group: root
+
+- name: Disable SSH root login and password login
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item }}"
+    line: "{{ item }} no"
+    state: present
+  with_items:
+    - "PermitRootLogin"
+    - "PasswordAuthentication"
+  notify: Reload SSH service
+
+- name: Enable SSH Pubkeyauthention
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item }}"
+    line: "{{ item }} yes"
+    state: present
+  with_items:
+    - "PubkeyAuthentication"
+  notify: Reload SSH service
+
+- name: Copy public key to authorized_keys
+  become: true
+  ansible.builtin.copy:
+    src: "/home/{{ ssh_user }}/.ssh/id_ed25519.pub"
+    dest: "/home/{{ ssh_user }}/.ssh/authorized_keys"
+    owner: "{{ ssh_user }}"
+    group: "{{ ssh_user }}"
+    mode: '0640'
+    remote_src: true
+
+- name: Fetch ssh private key to the control machine
+  become: true
+  ansible.builtin.fetch:
+    src: "/home/{{ ssh_user }}/.ssh/id_ed25519"
+    dest: "../{{ ssh_user }}_id_rsa"
+    flat: true
+
+- name: Create Sudo user
+  become: true
+  ansible.builtin.user:
+    name: "{{ sudo_user }}"
+    shell: /bin/bash
+    password: "{{ sudo_user_password | password_hash('bcrypt') }}"
+    groups:
+      - "sudo"
+      - "{{ erp_group }}"
+    append: true
+    state: present
+
+- name: Create system user
+  become: true
+  ansible.builtin.user:
+    name: "{{ system_user }}"
+    shell: /usr/sbin/nologin
+    groups: "{{ erp_group }}"
+    append: true
+    system: true
+    state: present

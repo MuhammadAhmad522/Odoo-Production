@@ -1,0 +1,27 @@
+---
+# user role vars
+ssh_user: "butler"
+sudo_user: "erp_admin"
+system_user: "erp"
+sudo_user_password: "erp_admin12345"
+erp_group: "erp_group"
+
+# postgresql role vars
+postgresql_admin_user: "erp_admin"
+postgresql_db: "erp_db"
+postgresql_version: "17"
+postgresql_odoo_password: "odoo12345"
+postgresql_admin_password: "admin12345"
+postgresql_odoo_user: "erp"
+
+# nginx role vars
+nginx_key_url: https://nginx.org/keys/nginx_signing.key
+nginx_key_dest: /usr/share/keyrings/nginx-archive-keyring.gpg
+nginx_key_tmp: /tmp/nginx_signing.key
+nginx_repo_url_stable: "http://nginx.org/packages/ubuntu {{ ansible_distribution_release | lower }} nginx"
+nginx_pref_file: /etc/apt/preferences.d/99nginx
+odoo_domain: "localhost"
+
+# odoo role vars
+odoo_version: "18.0"
+odoo_install_dir: "/opt/odoo"

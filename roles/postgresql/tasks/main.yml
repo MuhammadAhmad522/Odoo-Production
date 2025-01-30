@@ -1,0 +1,72 @@
+---
+- name: Ensure directory for PostgreSQL key exists
+  ansible.builtin.file:
+    path: /usr/share/postgresql-common/pgdg
+    state: directory
+    mode: '0755'
+  retries: 5
+
+- name: Download PostgreSQL GPG key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+    mode: '0644'
+
+- name: Add PostgreSQL GPG key
+  ansible.builtin.apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+
+- name: Add PostgreSQL APT repository
+  ansible.builtin.apt_repository:
+    repo: >
+      deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc]
+      https://apt.postgresql.org/pub/repos/apt
+      {{ ansible_distribution_release }}-pgdg main
+    state: present
+    filename: pgdg
+
+- name: Install PostgreSQL packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  with_items:
+    - "postgresql-{{ postgresql_version }}"
+    - "postgresql-client-{{ postgresql_version }}"
+
+- name: Create postgres admin user
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_admin_user }}"
+    password: "{{ postgresql_admin_password }}"
+    role_attr_flags: "SUPERUSER,CREATEDB"
+    state: present
+    login_user: postgres
+  become_user: postgres
+  become: true
+
+- name: Create postgres user for odoo
+  become_user: postgres
+  become: true
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_odoo_user }}"
+    password: "{{ postgresql_odoo_password }}"
+    role_attr_flags: "NOSUPERUSER,NOCREATEROLE"
+    state: present
+
+- name: Create postgres database for odoo using admin user
+  become_user: postgres
+  become: true
+  community.postgresql.postgresql_db:
+    name: "{{ postgresql_db }}"
+    state: present
+
+- name: Assign the database to odoo user
+  become_user: postgres
+  become: true
+  community.postgresql.postgresql_db:
+    name: "{{ postgresql_db }}"
+    owner: "{{ postgresql_odoo_user }}"
+    state: present
+  notify:
+    - Restart postgresql

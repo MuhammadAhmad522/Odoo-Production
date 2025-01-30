@@ -1,0 +1,13 @@
+[Unit] 
+Description=Odoo 
+After=network.target postgresql.service 
+ 
+[Service] 
+Type=simple 
+User={{ sudo_user }}
+Group={{ erp_group }} 
+Restart=always
+ExecStart=/usr/bin/python3 /opt/odoo/odoo-bin --config {{ odoo_install_dir }}/.odoorc -i base
+ 
+[Install] 
+WantedBy=multi-user.target

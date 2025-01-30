@@ -1,0 +1,11 @@
+# Ansible
+*.retry
+*.log
+
+.vscode
+
+# Vagrant
+.vagrant/
+Vagrantfile.local
+Vagrantfile.custom
+*id_rsa

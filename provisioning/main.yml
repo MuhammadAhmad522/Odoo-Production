@@ -1,0 +1,16 @@
+- name: Set up production ready Odoo server
+  hosts: all
+  become: true
+
+  pre_tasks:
+    - name: Include vars file
+      include_vars:
+        file: vars/main.yml
+
+  roles:
+    - users
+    - common
+    - postgresql
+    - odoo
+    - ssl
+    - nginx
